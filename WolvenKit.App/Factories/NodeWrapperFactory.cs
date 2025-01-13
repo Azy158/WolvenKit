@@ -1,5 +1,6 @@
 ﻿using WolvenKit.App.Controllers;
-using WolvenKit.App.ViewModels.GraphEditor.Nodes.Quest;
+using WolvenKit.App.ViewModels.GraphEditor;
+using WolvenKit.App.ViewModels.GraphEditor.Nodes;
 using WolvenKit.Common;
 using WolvenKit.Core.Interfaces;
 using WolvenKit.RED4.Types;
@@ -19,9 +20,16 @@ public class NodeWrapperFactory : INodeWrapperFactory
         _gameController = gameController;
     }
 
-    public questPhaseNodeDefinitionWrapper QuestPhaseNodeDefinitionWrapper(questPhaseNodeDefinition nodeDefinition) =>
-        new(nodeDefinition, _loggerService, this, _archiveManager);
-
-    public questSceneNodeDefinitionWrapper QuestSceneNodeDefinitionWrapper(questSceneNodeDefinition nodeDefinition) =>
-        new(nodeDefinition, _loggerService, _gameController, _archiveManager);
+    public NodeViewModel CreateViewModel(IRedType node, IRedType resource)
+    {
+        if (node is questNodeDefinition questNode && resource is questQuestPhaseResource questResource)
+        {
+            return QuestNodeWrapperFactory.CreateViewModel(questNode, questResource, _loggerService, this, _gameController, _archiveManager);
+        }
+        if (node is scnSceneGraphNode sceneNode && resource is scnSceneResource sceneResource)
+        {
+            return SceneNodeWrapperFactory.CreateViewModel(sceneNode, sceneResource);
+        }
+        throw new System.ArgumentException($"Node '{node.GetType()}' cannot be wrapped due to unexisting NodeWrapperFactory.");
+    }
 }

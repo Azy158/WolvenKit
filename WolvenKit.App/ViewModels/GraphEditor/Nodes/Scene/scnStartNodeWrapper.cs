@@ -1,4 +1,5 @@
-﻿using WolvenKit.App.ViewModels.GraphEditor.Nodes.Scene.Internal;
+﻿using System.Linq;
+using WolvenKit.App.ViewModels.GraphEditor.Nodes.Scene.Internal;
 using WolvenKit.RED4.Types;
 
 namespace WolvenKit.App.ViewModels.GraphEditor.Nodes.Scene;
@@ -13,8 +14,17 @@ public class scnStartNodeWrapper : BaseSceneViewModel<scnStartNode>
         set => _scnEntryPoint.Name = value;
     }
 
-    public scnStartNodeWrapper(scnStartNode scnSceneGraphNode, scnEntryPoint entryPoint) : base(scnSceneGraphNode)
+    public scnStartNodeWrapper(scnStartNode scnStartNode, scnSceneResource resource) : base(scnStartNode)
     {
+        var entryPoint = resource
+                .EntryPoints
+                .FirstOrDefault(x => x.NodeId.Id == scnStartNode.NodeId.Id);
+
+        if (entryPoint == null)
+        {
+            entryPoint = new scnEntryPoint { NodeId = new scnNodeId { Id = scnStartNode.NodeId.Id } };
+            resource.EntryPoints.Add(entryPoint);
+        }
         _scnEntryPoint = entryPoint;
     }
 

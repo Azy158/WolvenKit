@@ -1,90 +1,49 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Msagl.Core.Geometry.Curves;
-using Microsoft.Msagl.Core.Layout;
-using Microsoft.Msagl.Core.Routing;
-using Microsoft.Msagl.Layout.Layered;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Splat;
+using WolvenKit.App.Factories;
 using WolvenKit.App.ViewModels.Documents;
 using WolvenKit.App.ViewModels.GraphEditor.Nodes;
-using WolvenKit.App.ViewModels.GraphEditor.Nodes.Quest;
-using WolvenKit.App.ViewModels.GraphEditor.Nodes.Quest.Internal;
-using WolvenKit.App.ViewModels.GraphEditor.Nodes.Scene.Internal;
+using WolvenKit.App.ViewModels.Shell;
 using WolvenKit.Core.Interfaces;
-using WolvenKit.RED4.Types;
 
 namespace WolvenKit.App.ViewModels.GraphEditor;
 
-public enum RedGraphType
+// TODO: Figure out how to dispose the objects only when the tab/file is closed and not unload.
+public abstract class RedGraph
 {
-    Invalid,
-    Quest,
-    Scene
-}
-
-public partial class RedGraph : IDisposable
-{
-    private IRedType _data;
-
-    private uint _currentSceneNodeId;
-    private ushort _currentQuestNodeId;
-
-    private bool _allowGraphSave = false;
-
-    public RedGraphType GraphType { get; } = RedGraphType.Invalid;
+    protected readonly ILoggerService _loggerService;
+    protected readonly INodeWrapperFactory _nodeWrapperFactory;
 
     public string Title { get; }
     public ObservableCollection<NodeViewModel> Nodes { get; } = new();
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
-    public PendingConnectionViewModel PendingConnection { get; }
+    public PendingConnectionViewModel PendingConnection { get; } = new();
+    public RedGraphLayoutManager LayoutManager { get; }
 
-    public ICommand ConnectCommand { get; }
-    public ICommand DisconnectCommand { get; }
-    public ICommand ItemsDragCompletedCommand { get; }
+    public RedDocumentViewModel DocumentViewModel { get; set; }
 
-    public Nodify.NodifyEditor? Editor { get; set; }
+    public ICommand ConnectNodeCommand { get; }
+    public ICommand DisconnectNodeCommand { get; }
+    public ICommand NodesDragCompletedCommand { get; }
 
-    public RedDocumentViewModel? DocumentViewModel { get; set; }
-
-    public string StateParents { get; set; } = "";
-
-    private static ILoggerService? _loggerService;
-
-    static RedGraph()
+    public RedGraph(string title, RedDocumentViewModel file, ILoggerService log, INodeWrapperFactory nodeWrapperFactory)
     {
-        GenerateQuestWrapperMap();
-    }
-
-    public RedGraph(string title, IRedType data)
-    {
-        _data = data;
-        if (_data is graphGraphDefinition)
-        {
-            GraphType = RedGraphType.Quest;
-        }
-        else if (_data is scnSceneResource)
-        {
-            GraphType = RedGraphType.Scene;
-        }
-
+        _loggerService = log;
+        _nodeWrapperFactory = nodeWrapperFactory;
         Title = title;
-        PendingConnection = new PendingConnectionViewModel();
+        LayoutManager = new RedGraphLayoutManager(this);
+        DocumentViewModel = file;
 
-        ConnectCommand = new RelayCommand(Connect);
-        DisconnectCommand = new RelayCommand<BaseConnectorViewModel>(Disconnect);
-        ItemsDragCompletedCommand = new RelayCommand(ItemsDragCompleted);
+        ConnectNodeCommand = new RelayCommand(ConnectNode);
+        DisconnectNodeCommand = new RelayCommand<BaseConnectorViewModel>(DisconnectNode);
+        NodesDragCompletedCommand = new RelayCommand(NodesDragCompleted);
 
-        _loggerService = Locator.Current.GetService<ILoggerService>();
     }
 
-    public void Connect()
+    private void ConnectNode()
     {
         if (PendingConnection.Target is IDynamicInputNode dynIn)
         {
@@ -98,32 +57,38 @@ public partial class RedGraph : IDisposable
 
         if (PendingConnection is { Source: OutputConnectorViewModel output1, Target: InputConnectorViewModel input1 })
         {
-            if (GraphType == RedGraphType.Quest)
+            // If connection between the sockets already exist, act as removing.
+            for (var i = Connections.Count - 1; i >= 0; i--)
             {
-                ConnectQuest((QuestOutputConnectorViewModel)output1, (QuestInputConnectorViewModel)input1);
+                if (!ReferenceEquals(Connections[i].Source, output1) ||
+                    !ReferenceEquals(Connections[i].Target, input1))
+                {
+                    continue;
+                }
+                RemoveConnection(Connections[i]);
+                return;
             }
-
-            if (GraphType == RedGraphType.Scene)
-            {
-                ConnectScene((SceneOutputConnectorViewModel)output1, (SceneInputConnectorViewModel)input1);
-            }
+            AddConnection(output1, input1);
         }
 
         if (PendingConnection is { Source: InputConnectorViewModel input2, Target: OutputConnectorViewModel output2 })
         {
-            if (GraphType == RedGraphType.Quest)
+            // If connection between the sockets already exist, act as removing.
+            for (var i = Connections.Count - 1; i >= 0; i--)
             {
-                ConnectQuest((QuestOutputConnectorViewModel)output2, (QuestInputConnectorViewModel)input2);
+                if (!ReferenceEquals(Connections[i].Source, input2) ||
+                    !ReferenceEquals(Connections[i].Target, output2))
+                {
+                    continue;
+                }
+                RemoveConnection(Connections[i]);
+                return;
             }
-
-            if (GraphType == RedGraphType.Scene)
-            {
-                ConnectScene((SceneOutputConnectorViewModel)output2, (SceneInputConnectorViewModel)input2);
-            }
+            AddConnection(output2, input2);
         }
     }
 
-    private void Disconnect(BaseConnectorViewModel? baseConnectorViewModel)
+    public void DisconnectNode(BaseConnectorViewModel? baseConnectorViewModel)
     {
         if (baseConnectorViewModel is OutputConnectorViewModel outputConnector)
         {
@@ -131,15 +96,7 @@ public partial class RedGraph : IDisposable
             {
                 if (Connections[i].Source == outputConnector)
                 {
-                    if (GraphType == RedGraphType.Quest)
-                    {
-                        RemoveQuestConnection((QuestConnectionViewModel)Connections[i]);
-                    }
-
-                    if (GraphType == RedGraphType.Scene)
-                    {
-                        RemoveSceneConnection((SceneConnectionViewModel)Connections[i]);
-                    }
+                    RemoveConnection(Connections[i]);
                 }
             }
         }
@@ -150,38 +107,10 @@ public partial class RedGraph : IDisposable
             {
                 if (Connections[i].Target == inputConnector)
                 {
-                    if (GraphType == RedGraphType.Quest)
-                    {
-                        RemoveQuestConnection((QuestConnectionViewModel)Connections[i]);
-                    }
-
-                    if (GraphType == RedGraphType.Scene)
-                    {
-                        RemoveSceneConnection((SceneConnectionViewModel)Connections[i]);
-                    }
+                    RemoveConnection(Connections[i]);
                 }
             }
         }
-    }
-
-    public void RemoveNode(NodeViewModel node)
-    {
-        if (!Nodes.Contains(node))
-        {
-            return;
-        }
-
-        if (GraphType == RedGraphType.Scene && node is BaseSceneViewModel sceneNode)
-        {
-            RemoveSceneNode(sceneNode);
-        }
-
-        if (GraphType == RedGraphType.Quest && node is BaseQuestViewModel questNode)
-        {
-            RemoveQuestNode(questNode);
-        }
-
-        GraphStateSave();
     }
 
     public void RemoveNodes(IList<object> nodes)
@@ -203,247 +132,18 @@ public partial class RedGraph : IDisposable
         }
     }
 
-    public void CenterOnSelectedNodes(IList<object> nodes)
-    {
-        if (nodes.Count > 0 && Editor != null)
-        {
-            if (nodes[0] is not NodeViewModel nvm)
-            {
-                throw new Exception();
-            }
+    public void NodesDragCompleted() => LayoutManager.SaveGraphLayout();
 
-            Editor.ViewportZoom = 1;
-            Editor.ViewportLocation = new System.Windows.Point(
-                nvm.Location.X - (Editor.ViewportSize.Width / 2) + (nvm.Size.Width / 2),
-                nvm.Location.Y - (Editor.ViewportSize.Height / 2) + (nvm.Size.Height / 2)
-            );
-        }
-    }
+    public abstract void GenerateGraph();
+    public abstract void RecalculateSockets(IGraphProvider nodeViewModel);
 
-    public void RecalculateSockets(IGraphProvider nodeViewModel)
-    {
-        if (nodeViewModel is BaseQuestViewModel)
-        {
-            RecalculateQuestSockets(nodeViewModel);
-        }
-    }
+    public abstract void AddConnection(OutputConnectorViewModel source, InputConnectorViewModel target);
+    public abstract void RemoveConnection(ConnectionViewModel connection);
+    public abstract void CreateNode(Type type, System.Windows.Point point);
+    public abstract void RemoveNode(NodeViewModel node);
 
-    public System.Windows.Rect ArrangeNodes(double xOffset = 0, double yOffset = 0)
-    {
-        var graph = new GeometryGraph();
-        var msaglNodes = new Dictionary<uint, Node>();
-
-        foreach (var node in Nodes)
-        {
-            var msaglNode = new Node(CurveFactory.CreateRectangle(node.Size.Width, node.Size.Height, new Microsoft.Msagl.Core.Geometry.Point()))
-            {
-                UserData = node
-            };
-
-            msaglNodes.Add(node.UniqueId, msaglNode);
-            graph.Nodes.Add(msaglNode);
-        }
-
-        foreach (var connection in Connections.Reverse())
-        {
-            graph.Edges.Add(new Edge(msaglNodes[connection.Source.OwnerId], msaglNodes[connection.Target.OwnerId]));
-        }
-
-        var settings = new SugiyamaLayoutSettings
-        {
-            Transformation = PlaneTransformation.Rotation(Math.PI / 2),
-            EdgeRoutingSettings = { EdgeRoutingMode = EdgeRoutingMode.Spline }
-        };
-
-        var layout = new LayeredLayout(graph, settings);
-        layout.Run();
-
-        double maxX = 0;
-        double minX = 0;
-        double maxY = 0;
-        double minY = 0;
-
-        foreach (var node in graph.Nodes)
-        {
-            var nvm = (NodeViewModel)node.UserData;
-            nvm.Location = new System.Windows.Point(
-                node.Center.X - graph.BoundingBox.Center.X - (nvm.Size.Width / 2) + xOffset,
-                node.Center.Y - graph.BoundingBox.Center.Y - (nvm.Size.Height / 2) + yOffset);
-
-            maxX = Math.Max(maxX, nvm.Location.X + nvm.Size.Width);
-            minX = Math.Min(minX, nvm.Location.X);
-            maxY = Math.Max(maxY, nvm.Location.Y + nvm.Size.Height);
-            minY = Math.Min(minY, nvm.Location.Y);
-        }
-
-        return new System.Windows.Rect(minX, minY, maxX - minX, maxY - minY);
-    }
-
-    public void GraphStateLoad()
-    {
-        var loaded = false;
-
-        if (DocumentViewModel != null)
-        {
-            var proj = DocumentViewModel.GetActiveProject();
-            if (proj != null)
-            {
-                var statePath = Path.Combine(proj.ProjectDirectory, "GraphEditorStates", DocumentViewModel.RelativePath + StateParents + ".json");
-                if (File.Exists(statePath))
-                {
-                    Dictionary<uint, System.Windows.Point> nodesLocs = new();
-
-                    var jsonData = JObject.Parse(File.ReadAllText(statePath));
-                    var nodesArray = jsonData.SelectTokens("Nodes.[*]");
-                    foreach (var node in nodesArray)
-                    {
-                        var nodeID = node.SelectToken("NodeID") as JValue;
-                        var nodeX = node.SelectToken("X") as JValue;
-                        var nodeY = node.SelectToken("Y") as JValue;
-
-                        if (nodeID != null &&  nodeX != null && nodeY != null)
-                        {
-                            nodesLocs.TryAdd(
-                                nodeID.ToObject<uint>(),
-                                new System.Windows.Point(
-                                    nodeX.ToObject<double>(),
-                                    nodeY.ToObject<double>()
-                                )
-                            );
-                        }
-                    }
-
-                    foreach (var node in Nodes)
-                    {
-                        uint nodeID = 0;
-                        if (node.Data is scnSceneGraphNode n)
-                        {
-                            nodeID = n.NodeId.Id;
-                        }
-                        if (node.Data is questNodeDefinition q)
-                        {
-                            nodeID = q.Id;
-                        }
-
-                        if (nodesLocs.ContainsKey(nodeID))
-                        {
-                            node.Location = nodesLocs[nodeID];
-                        }
-                    }
-
-                    if (Editor != null)
-                    {
-                        var editorX = jsonData.SelectToken("EditorX") as JValue;
-                        var editorY = jsonData.SelectToken("EditorY") as JValue;
-                        var editorZ = jsonData.SelectToken("EditorZ") as JValue;
-                        if (editorX != null && editorY != null && editorZ != null)
-                        {
-                            Editor.ViewportZoom = editorZ.ToObject<double>();
-                            Editor.ViewportLocation = new System.Windows.Point(editorX.ToObject<double>(), editorY.ToObject<double>());
-                        }
-                    }
-
-                    loaded = true;
-                }
-            }
-        }
-
-        if (!loaded)
-        {
-            var rect = ArrangeNodes();
-            Editor?.FitToScreen(rect);
-        }
-
-        _allowGraphSave = true;
-    }
-
-    private void ItemsDragCompleted()
-    {
-        GraphStateSave();
-    }
-
-    public void GraphStateSave()
-    {
-        if (DocumentViewModel != null && _allowGraphSave)
-        {
-            var proj = DocumentViewModel.GetActiveProject();
-            if (proj != null)
-            {
-                var statePath = Path.Combine(proj.ProjectDirectory, "GraphEditorStates", DocumentViewModel.RelativePath + StateParents + ".json");
-                var parentFolder = Path.GetDirectoryName(statePath);
-
-                if (parentFolder != null && !Directory.Exists(parentFolder))
-                {
-                    Directory.CreateDirectory(parentFolder);
-                }
-
-                if (File.Exists(statePath))
-                {
-                    File.Delete(statePath);
-                }
-
-                var jNodes = new JArray();
-                foreach (var node in Nodes)
-                {
-                    uint nodeID = 0;
-                    if (node.Data is scnSceneGraphNode n)
-                    {
-                        nodeID = n.NodeId.Id;
-                    }
-                    if (node.Data is questNodeDefinition q)
-                    {
-                        nodeID = q.Id;
-                    }
-
-                    JObject newPerfSet = new(
-                        new JProperty("NodeID", nodeID),
-                        new JProperty("X", node.Location.X),
-                        new JProperty("Y", node.Location.Y)
-                    );
-
-                    jNodes.Add(newPerfSet);
-                }
-                
-                var jRoot = new JObject
-                {
-                    new JProperty("EditorX", Editor != null ? Editor.ViewportLocation.X : 0),
-                    new JProperty("EditorY", Editor != null ? Editor.ViewportLocation.Y : 0),
-                    new JProperty("EditorZ", Editor != null ? Editor.ViewportZoom : 0),
-                    new JProperty("Nodes", jNodes)
-                };
-
-                File.WriteAllText(statePath, JsonConvert.SerializeObject(jRoot));
-            }
-        }
-    }
-
-    #region IDisposable
-
-    private bool _disposedValue;
-
-    ~RedGraph() => Dispose(false);
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposedValue)
-        {
-            if (disposing)
-            {
-                foreach (var node in Nodes)
-                {
-                    node.Dispose();
-                }
-            }
-
-            _disposedValue = true;
-        }
-    }
-
-    #endregion IDisposable
+    public abstract List<Type> GetNodeTypes();
+    public abstract string GetCleanTypeName(string typeName);
+    public abstract ChunkViewModel? GetNodesChunkViewModel();
+    public abstract uint GetNodeId(NodeViewModel node);
 }

@@ -9,7 +9,7 @@ using WolvenKit.App.ViewModels.Shell;
 using WolvenKit.RED4.Types;
 
 namespace WolvenKit.App.ViewModels.GraphEditor;
-
+/*
 public partial class RedGraph
 {
     private static Dictionary<Type, Type> s_questWrapperMap = new();
@@ -500,4 +500,4 @@ public partial class RedGraph
 
         return graph;
     }
-}
+}*/
