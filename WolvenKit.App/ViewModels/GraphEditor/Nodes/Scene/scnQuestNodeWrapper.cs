@@ -51,6 +51,15 @@ public class scnQuestNodeWrapper : BaseSceneViewModel<scnQuestNode>
         }
     }
 
+    internal override void CreateDefaultState()
+    {
+        base.CreateDefaultState();
+
+        _castedData.IsockMappings.Add("CutDestination");
+        _castedData.IsockMappings.Add("In");
+        _castedData.OsockMappings.Add("Out");
+    }
+
     protected override void DataOnPropertyChanging(object? sender, PropertyChangingEventArgs e)
     {
         base.DataOnPropertyChanging(sender, e);

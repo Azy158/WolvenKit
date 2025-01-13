@@ -10,6 +10,8 @@ public abstract class BaseSceneViewModel : NodeViewModel
     {
         Title = $"[{UniqueId}] {Data.GetType().Name[3..^4]}";
     }
+
+    internal virtual void CreateDefaultState() { }
 }
 
 public abstract class BaseSceneViewModel<T> : BaseSceneViewModel where T : scnSceneGraphNode
@@ -28,5 +30,10 @@ public abstract class BaseSceneViewModel<T> : BaseSceneViewModel where T : scnSc
         {
             Output.Add(new SceneOutputConnectorViewModel($"Out{i}", $"Out{i}", UniqueId, _castedData.OutputSockets[i]));
         }
+    }
+
+    internal override void CreateDefaultState()
+    {
+        _castedData.OutputSockets.Add(new scnOutputSocket { Stamp = new scnOutputSocketStamp { Name = 0, Ordinal = 0 } });
     }
 }

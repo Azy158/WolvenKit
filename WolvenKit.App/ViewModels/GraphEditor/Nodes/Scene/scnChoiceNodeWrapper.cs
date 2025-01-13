@@ -49,6 +49,24 @@ public class scnChoiceNodeWrapper : BaseSceneViewModel<scnChoiceNode>
         }
     }
 
+    internal override void CreateDefaultState()
+    {
+        _sceneResource.NotablePoints.Add(new scnNotablePoint
+        {
+            NodeId = new scnNodeId
+            {
+                Id = _castedData.NodeId.Id
+            }
+        });
+
+        _castedData.OutputSockets.Add(new scnOutputSocket { Stamp = new scnOutputSocketStamp { Name = 1, Ordinal = 0 } });
+        _castedData.OutputSockets.Add(new scnOutputSocket { Stamp = new scnOutputSocketStamp { Name = 2, Ordinal = 0 } });
+        _castedData.OutputSockets.Add(new scnOutputSocket { Stamp = new scnOutputSocketStamp { Name = 3, Ordinal = 0 } });
+        _castedData.OutputSockets.Add(new scnOutputSocket { Stamp = new scnOutputSocketStamp { Name = 4, Ordinal = 0 } });
+        _castedData.OutputSockets.Add(new scnOutputSocket { Stamp = new scnOutputSocketStamp { Name = 5, Ordinal = 0 } });
+        _castedData.OutputSockets.Add(new scnOutputSocket { Stamp = new scnOutputSocketStamp { Name = 6, Ordinal = 0 } });
+    }
+
     private void GetChoices()
     {
         Options.Clear();

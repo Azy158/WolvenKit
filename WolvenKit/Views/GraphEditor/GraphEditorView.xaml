@@ -20,7 +20,7 @@
                                   Path=Source.Connections}"
             ContextMenuOpening="Editor_OnContextMenuOpening"
             DisconnectConnectorCommand="{Binding ElementName=uc,
-                                                 Path=Source.DisconnectCommand}"
+                                                 Path=Source.DisconnectNodeCommand}"
             DisplayConnectionsOnTop="True"
             EnableRealtimeSelection="True"
             ItemsSource="{Binding ElementName=uc,
@@ -32,9 +32,13 @@
             SelectedItems="{Binding ElementName=uc,
                                     Path=SelectedNodes}"
             ViewportLocation="{Binding ElementName=uc,
-                                       Path=ViewportLocation}"
+                                       Path=Source.LayoutManager.ViewportLocation}"
+            ViewportZoom="{Binding ElementName=uc,
+                                   Path=Source.LayoutManager.ViewportZoom}"
+            ViewportSize="{Binding ElementName=uc,
+                                   Path=Source.LayoutManager.ViewportSize}"
             ItemsDragCompletedCommand="{Binding ElementName=uc,
-                                                Path=Source.ItemsDragCompletedCommand}">
+                                                Path=Source.NodesDragCompletedCommand}">
             <nodify:NodifyEditor.Resources>
                 <DataTemplate x:Key="HeaderTemplate">
                     <TextBlock
@@ -196,7 +200,7 @@
                     <nodify:PendingConnection
                         AllowOnlyConnectors="False"
                         CompletedCommand="{Binding ElementName=uc,
-                                                   Path=Source.ConnectCommand}"
+                                                   Path=Source.ConnectNodeCommand}"
                         Source="{Binding Source,
                                          Mode=OneWayToSource}"
                         Target="{Binding Target,

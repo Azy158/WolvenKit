@@ -8,7 +8,7 @@ using WolvenKit.App.ViewModels.Shell;
 using WolvenKit.RED4.Types;
 
 namespace WolvenKit.App.ViewModels.GraphEditor;
-
+/*
 public partial class RedGraph
 {
     private static List<Type>? s_sceneNodeTypes;
@@ -396,4 +396,4 @@ public partial class RedGraph
 
         return graph;
     }
-}
+}*/

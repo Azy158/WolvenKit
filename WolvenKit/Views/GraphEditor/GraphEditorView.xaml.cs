@@ -41,8 +41,8 @@ public partial class GraphEditorView : UserControl
 
     private static void UpdateView(GraphEditorView view)
     {
-        view.Source.Editor = view.Editor;
-        view.Source.GraphStateLoad();
+        //view.Source.Editor = view.Editor;
+        view.Source.LayoutManager.LoadGraphLayout();
         //view.Editor.FitToScreen();
     }
 
@@ -76,8 +76,6 @@ public partial class GraphEditorView : UserControl
         set => SetField(ref _selectedNodes, value);
     }
 
-    public Point ViewportLocation { get; set; }
-
     private readonly AppViewModel _appViewModel;
 
     public GraphEditorView()
@@ -104,7 +102,7 @@ public partial class GraphEditorView : UserControl
             return;
         }
 
-        Source.GraphStateSave();
+        Source.LayoutManager.SaveGraphLayout();
     }
 
     private void ArrangeNodes()
@@ -115,9 +113,18 @@ public partial class GraphEditorView : UserControl
         }
 
         UpdateLayout();
-        Source.ArrangeNodes();
-        Source.GraphStateSave();
-        Source.CenterOnSelectedNodes(SelectedNodes);
+        Source.LayoutManager.ArrangeNodes();
+        Source.LayoutManager.SaveGraphLayout();
+        if (SelectedNodes.Count > 0)
+        {
+            Source.LayoutManager.CenterOnNode(SelectedNodes[0]);
+        }
+    }
+
+    private Point TranslateCursorToViewportLocation(double x, double y)
+    {
+        return new Point(Editor.ViewportLocation.X + (x / Editor.ViewportZoom),
+            Editor.ViewportLocation.Y + (y / Editor.ViewportZoom));
     }
 
     private void Editor_OnContextMenuOpening(object sender, ContextMenuEventArgs e)
@@ -130,104 +137,44 @@ public partial class GraphEditorView : UserControl
         nodifyEditor.ContextMenu ??= new ContextMenu();
         nodifyEditor.ContextMenu.Items.Clear();
 
-        if (Source.GraphType == RedGraphType.Scene)
-        {
-            var nodeTypes = Source.GetSceneNodeTypes();
-            var types = nodeTypes
-                .Select(x => new TypeEntry(GetCleanTypeName(x.Name), "", x))
+        var nodeTypes = Source.GetNodeTypes();
+        var types = nodeTypes
+                .Select(x => new TypeEntry(Source.GetCleanTypeName(x.Name), "", x))
                 .OrderBy(x => x.Name)
                 .ToList();
 
-            var addMenu = CreateAddMenuItem();
+        var addMenu = CreateAddMenuItem();
 
-            addMenu.Items.Add(CreateMenuItem("Open Dialog ...", "FolderOpen", "WolvenKitYellow", async () =>
-            {
-                await _appViewModel.SetActiveDialog(new TypeSelectorDialogViewModel(types)
-                {
-                    DialogHandler = model =>
-                    {
-                        _appViewModel.CloseDialogCommand.Execute(null);
-                        if (model is TypeSelectorDialogViewModel { SelectedEntry.UserData: Type selectedType })
-                        {
-                            Source.CreateSceneNode(selectedType, ViewportLocation);
-                        }
-                    }
-                });
-            }));
-
-            addMenu.Items.Add(new Separator());
-
-            foreach (var nodeType in nodeTypes)
-            {
-                addMenu.Items.Add(CreateMenuItem(GetCleanTypeName(nodeType.Name), () => Source.CreateSceneNode(nodeType, ViewportLocation)));
-            }
-
-            nodifyEditor.ContextMenu.Items.Add(addMenu);
-        }
-
-        if (Source.GraphType == RedGraphType.Quest)
+        addMenu.Items.Add(CreateMenuItem("Open Dialog ...", "FolderOpen", "WolvenKitYellow", async () =>
         {
-            var nodeTypes = Source.GetQuestNodeTypes();
-            var types = nodeTypes
-                .Select(x => new TypeEntry(GetCleanTypeName(x.Name), "", x))
-                .OrderBy(x => x.Name)
-                .ToList();
-
-            var addMenu = CreateAddMenuItem();
-
-            addMenu.Items.Add(CreateMenuItem("Open Dialog ...", "FolderOpen", "WolvenKitYellow", async () =>
+            await _appViewModel.SetActiveDialog(new TypeSelectorDialogViewModel(types)
             {
-                await _appViewModel.SetActiveDialog(new TypeSelectorDialogViewModel(types)
+                DialogHandler = model =>
                 {
-                    DialogHandler = model =>
+                    _appViewModel.CloseDialogCommand.Execute(null);
+                    if (model is TypeSelectorDialogViewModel { SelectedEntry.UserData: Type selectedType })
                     {
-                        _appViewModel.CloseDialogCommand.Execute(null);
-                        if (model is TypeSelectorDialogViewModel { SelectedEntry.UserData: Type selectedType })
-                        {
-                            Source.CreateQuestNode(selectedType, ViewportLocation);
-                        }
+                        Source.CreateNode(selectedType, TranslateCursorToViewportLocation(e.CursorLeft, e.CursorTop));
                     }
-                });
-            }));
+                }
+            });
+        }));
 
-            addMenu.Items.Add(new Separator());
+        addMenu.Items.Add(new Separator());
 
-            foreach (var nodeType in nodeTypes)
-            {
-                addMenu.Items.Add(CreateMenuItem(GetCleanTypeName(nodeType.Name), () => Source.CreateQuestNode(nodeType, ViewportLocation)));
-            }
-
-            nodifyEditor.ContextMenu.Items.Add(addMenu);
+        foreach (var nodeType in nodeTypes)
+        {
+            addMenu.Items.Add(CreateMenuItem(Source.GetCleanTypeName(nodeType.Name), 
+                () => Source.CreateNode(nodeType, TranslateCursorToViewportLocation(e.CursorLeft, e.CursorTop))));
         }
+
+        nodifyEditor.ContextMenu.Items.Add(addMenu);
 
         nodifyEditor.ContextMenu.Items.Add(CreateMenuItem("Arrange Items", "ViewDashboard", ArrangeNodes));
 
         nodifyEditor.ContextMenu.SetCurrentValue(ContextMenu.IsOpenProperty, true);
 
         e.Handled = true;
-    }
-
-    private string GetCleanTypeName(string typeName)
-    {
-        if (typeName.StartsWith("quest"))
-        {
-            typeName = typeName[5..];
-        }
-        else if (typeName.StartsWith("scn"))
-        {
-            typeName = typeName[3..];
-        }
-
-        if (typeName.EndsWith("NodeDefinition"))
-        {
-            typeName = typeName[..^14];
-        }
-        else if (typeName.EndsWith("Node"))
-        {
-            typeName = typeName[..^4];
-        }
-
-        return typeName;
     }
 
     private void Node_ContextMenuOpening(object sender, ContextMenuEventArgs e)

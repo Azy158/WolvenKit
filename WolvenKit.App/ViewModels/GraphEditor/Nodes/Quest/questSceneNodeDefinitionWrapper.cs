@@ -72,7 +72,7 @@ public class questSceneNodeDefinitionWrapper : questSignalStoppingNodeDefinition
                 fileName = Path.GetFileName(_castedData.SceneFile.DepotPath.GetResolvedText());
             }
 
-            _graph = RedGraph.GenerateSceneGraph(fileName!, res);
+            //_graph = RedGraph.GenerateSceneGraph(fileName!, res);
         }
     }
 

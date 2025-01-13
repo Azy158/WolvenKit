@@ -45,6 +45,14 @@ public class scnRandomizerNodeWrapper : BaseSceneViewModel<scnRandomizerNode>, I
         }
     }
 
+    internal override void CreateDefaultState()
+    {
+        base.CreateDefaultState();
+
+        _castedData.NumOutSockets = 1;
+        _castedData.Weights[0] = 1;
+    }
+
     public BaseConnectorViewModel AddOutput()
     {
         var index = (ushort)Output.Count;

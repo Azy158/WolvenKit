@@ -24,9 +24,18 @@ public class scnEndNodeWrapper : BaseSceneViewModel<scnEndNode>
 
     public IEnumerable<Enums.scnEndNodeNsType> Types => Enum.GetValues(typeof(Enums.scnEndNodeNsType)).Cast<Enums.scnEndNodeNsType>();
 
-    public scnEndNodeWrapper(scnEndNode scnEndNode, scnExitPoint exitPoint) : base(scnEndNode)
+    public scnEndNodeWrapper(scnEndNode scnEndNode, scnSceneResource resource) : base(scnEndNode)
     {
-        _scnExitPoint = exitPoint;
+        var endPoint = resource
+                .ExitPoints
+                .FirstOrDefault(x => x.NodeId.Id == scnEndNode.NodeId.Id);
+
+        if (endPoint == null)
+        {
+            endPoint = new scnExitPoint { NodeId = new scnNodeId { Id = scnEndNode.NodeId.Id } };
+            resource.ExitPoints.Add(endPoint);
+        }
+        _scnExitPoint = endPoint;
     }
 
     internal override void GenerateSockets() => Input.Add(new SceneInputConnectorViewModel("In", "In", UniqueId, 0));

@@ -38,6 +38,7 @@ public partial class RDTGraphView2
         }
     }
 
+    // TODO: Handle opening SubGraphs
     private void HandleSubGraph()
     {
         if (Editor.SelectedNode is IGraphProvider provider)
@@ -53,8 +54,8 @@ public partial class RDTGraphView2
             {
                 if (!ph.PhaseResource.IsSet)
                 {
-                    subGraph.StateParents = Editor.Source.StateParents + "." + ph.Id;
-                    subGraph.DocumentViewModel = Editor.Source.DocumentViewModel;
+                    //subGraph.StateParents = Editor.Source.StateParents + "." + ph.Id;
+                    //subGraph.DocumentViewModel = Editor.Source.DocumentViewModel;
                 }
             }
 

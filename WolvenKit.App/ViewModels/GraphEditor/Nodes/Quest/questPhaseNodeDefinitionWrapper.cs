@@ -45,7 +45,7 @@ public class questPhaseNodeDefinitionWrapper : questEmbeddedGraphNodeDefinitionW
     {
         if (_castedData.PhaseGraph != null && _castedData.PhaseGraph.Chunk != null)
         {
-            _graph = RedGraph.GenerateQuestGraph(Title, _castedData.PhaseGraph.Chunk, _nodeWrapperFactory);
+            //_graph = RedGraph.GenerateQuestGraph(Title, _castedData.PhaseGraph.Chunk, _nodeWrapperFactory);
         }
         else if (_castedData.PhaseResource.DepotPath != ResourcePath.Empty)
         {
@@ -68,7 +68,7 @@ public class questPhaseNodeDefinitionWrapper : questEmbeddedGraphNodeDefinitionW
                 fileName = Path.GetFileName(_castedData.PhaseResource.DepotPath.GetResolvedText());
             }
 
-            _graph = RedGraph.GenerateQuestGraph(fileName!, res.Graph.Chunk, _nodeWrapperFactory);
+            //_graph = RedGraph.GenerateQuestGraph(fileName!, res.Graph.Chunk, _nodeWrapperFactory);
         }
     }
 
