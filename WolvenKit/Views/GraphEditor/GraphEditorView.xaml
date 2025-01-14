@@ -32,11 +32,17 @@
             SelectedItems="{Binding ElementName=uc,
                                     Path=SelectedNodes}"
             ViewportLocation="{Binding ElementName=uc,
-                                       Path=Source.LayoutManager.ViewportLocation}"
+                                       Path=ViewportLocation,
+                                       Mode=TwoWay,
+                                       UpdateSourceTrigger=PropertyChanged}"
             ViewportZoom="{Binding ElementName=uc,
-                                   Path=Source.LayoutManager.ViewportZoom}"
+                                   Path=ViewportZoom,
+                                   Mode=TwoWay,
+                                   UpdateSourceTrigger=PropertyChanged}"
             ViewportSize="{Binding ElementName=uc,
-                                   Path=Source.LayoutManager.ViewportSize}"
+                                   Path=ViewportSize,
+                                   Mode=TwoWay,
+                                   UpdateSourceTrigger=PropertyChanged}"
             ItemsDragCompletedCommand="{Binding ElementName=uc,
                                                 Path=Source.NodesDragCompletedCommand}">
             <nodify:NodifyEditor.Resources>

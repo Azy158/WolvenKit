@@ -17,11 +17,11 @@ public partial class RedGraphLayoutManager : ObservableObject
 {
     private readonly RedGraph _redGraph;
     private bool _allowGraphSave;
-    private bool _isLayoutLoaded;
 
     [ObservableProperty] private System.Windows.Point _viewportLocation;
     [ObservableProperty] private System.Windows.Size _viewportSize;
     [ObservableProperty] private double _viewportZoom;
+    [ObservableProperty] private bool _isLayoutLoaded;
 
     public RedGraphLayoutManager(RedGraph graph)
     {
@@ -77,7 +77,7 @@ public partial class RedGraphLayoutManager : ObservableObject
 
     public void LoadGraphLayout()
     {
-        if (_isLayoutLoaded)
+        if (IsLayoutLoaded)
         {
             return;
         }
@@ -141,7 +141,7 @@ public partial class RedGraphLayoutManager : ObservableObject
             FitNodesToScreen(rect);
         }
 
-        _isLayoutLoaded = true;
+        IsLayoutLoaded = true;
         _allowGraphSave = true;
     }
 
@@ -213,7 +213,7 @@ public partial class RedGraphLayoutManager : ObservableObject
     {
         if (rect.Width > 0 && rect.Height > 0)
         {
-            ViewportZoom = Math.Min(rect.Width / rect.Height, rect.Height / rect.Width);
+            ViewportZoom = Math.Min(ViewportSize.Width / rect.Width, ViewportSize.Height / rect.Height);
             var centerPoint = new System.Windows.Point(rect.X + (rect.Width / 2), rect.Y + (rect.Height / 2));
             ViewportLocation = new System.Windows.Point(centerPoint.X - ViewportSize.Width / 2, centerPoint.Y - ViewportSize.Height / 2);
         }

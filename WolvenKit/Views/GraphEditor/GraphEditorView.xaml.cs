@@ -41,9 +41,60 @@ public partial class GraphEditorView : UserControl
 
     private static void UpdateView(GraphEditorView view)
     {
-        //view.Source.Editor = view.Editor;
+        // Update LayoutManger Viewport properties manually because they not getting updated for the first time.
+        if (!view.Source.LayoutManager.IsLayoutLoaded)
+        {
+            view.Source.LayoutManager.ViewportZoom = view.Editor.ViewportZoom;
+            view.Source.LayoutManager.ViewportSize = view.Editor.ViewportSize;
+            view.Source.LayoutManager.ViewportLocation = view.Editor.ViewportLocation;
+        }
+        
         view.Source.LayoutManager.LoadGraphLayout();
-        //view.Editor.FitToScreen();
+
+        view.Editor.SetCurrentValue(NodifyEditor.ViewportZoomProperty, view.Source.LayoutManager.ViewportZoom);
+        view.Editor.SetCurrentValue(NodifyEditor.ViewportLocationProperty, view.Source.LayoutManager.ViewportLocation);
+    }
+
+    private System.Windows.Point _viewportLocation;
+    public System.Windows.Point ViewportLocation
+    {
+        get => _viewportLocation;
+        set
+        {
+            SetField(ref _viewportLocation, value);
+            if (Source != null)
+            {
+                Source.LayoutManager.ViewportLocation = value;
+            }
+        }
+    }
+
+    private System.Windows.Size _viewportSize;
+    public System.Windows.Size ViewportSize
+    {
+        get => _viewportSize;
+        set
+        {
+            SetField(ref _viewportSize, value);
+            if (Source != null)
+            {
+                Source.LayoutManager.ViewportSize = value;
+            }
+        }
+    }
+
+    private double _viewportZoom = 1; //Default value. Nodify doesn't raise Viewport properties update
+    public double ViewportZoom
+    {
+        get => _viewportZoom;
+        set
+        {
+            SetField(ref _viewportZoom, value);
+            if (Source != null)
+            {
+                Source.LayoutManager.ViewportZoom = value;
+            }
+        }
     }
 
     public RedGraph Source
