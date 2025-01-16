@@ -13,20 +13,19 @@ public class questPhaseNodeDefinitionWrapper : questEmbeddedGraphNodeDefinitionW
     private readonly INodeWrapperFactory _nodeWrapperFactory;
     private readonly IArchiveManager _archiveManager;
 
-    private RedGraph? _graph = null;
+    //private RedGraph? _graph = null;
 
-    public RedGraph? Graph
-    {
-        get
-        {
-            if (_graph == null)
-            {
-                GenerateSubGraph();
-            }
-            return _graph;
-        }
-    }
-
+    //public RedGraph? Graph
+    //{
+    //    get
+    //    {
+    //        if (_graph == null)
+    //        {
+    //            GenerateSubGraph();
+    //        }
+    //        return _graph;
+    //    }
+    //}
 
     public questPhaseNodeDefinitionWrapper(questPhaseNodeDefinition questPhaseNodeDefinition, ILoggerService loggerService, INodeWrapperFactory nodeWrapperFactory, IArchiveManager archiveManager) : base(questPhaseNodeDefinition)
     {
@@ -41,36 +40,36 @@ public class questPhaseNodeDefinitionWrapper : questEmbeddedGraphNodeDefinitionW
         }
     }
 
-    private void GenerateSubGraph()
-    {
-        if (_castedData.PhaseGraph != null && _castedData.PhaseGraph.Chunk != null)
-        {
-            //_graph = RedGraph.GenerateQuestGraph(Title, _castedData.PhaseGraph.Chunk, _nodeWrapperFactory);
-        }
-        else if (_castedData.PhaseResource.DepotPath != ResourcePath.Empty)
-        {
-            var cr2w = _archiveManager.GetCR2WFile(_castedData.PhaseResource.DepotPath);
-            if (cr2w == null)
-            {
-                _loggerService.Error($"The file \"{_castedData.PhaseResource.DepotPath}\" could not be found!");
-                return;
-            }
+    //private void GenerateSubGraph()
+    //{
+    //    if (_castedData.PhaseGraph != null && _castedData.PhaseGraph.Chunk != null)
+    //    {
+    //        //_graph = RedGraph.GenerateQuestGraph(Title, _castedData.PhaseGraph.Chunk, _nodeWrapperFactory);
+    //    }
+    //    else if (_castedData.PhaseResource.DepotPath != ResourcePath.Empty)
+    //    {
+    //        var cr2w = _archiveManager.GetCR2WFile(_castedData.PhaseResource.DepotPath);
+    //        if (cr2w == null)
+    //        {
+    //            _loggerService.Error($"The file \"{_castedData.PhaseResource.DepotPath}\" could not be found!");
+    //            return;
+    //        }
 
-            if (cr2w is not { RootChunk: questQuestPhaseResource res } || res.Graph?.Chunk == null)
-            {
-                _loggerService.Error($"The file \"{_castedData.PhaseResource.DepotPath}\" could not be opened!");
-                return;
-            }
+    //        if (cr2w is not { RootChunk: questQuestPhaseResource res } || res.Graph?.Chunk == null)
+    //        {
+    //            _loggerService.Error($"The file \"{_castedData.PhaseResource.DepotPath}\" could not be opened!");
+    //            return;
+    //        }
 
-            var fileName = ((ulong)_castedData.PhaseResource.DepotPath).ToString();
-            if (_castedData.PhaseResource.DepotPath.IsResolvable)
-            {
-                fileName = Path.GetFileName(_castedData.PhaseResource.DepotPath.GetResolvedText());
-            }
+    //        var fileName = ((ulong)_castedData.PhaseResource.DepotPath).ToString();
+    //        if (_castedData.PhaseResource.DepotPath.IsResolvable)
+    //        {
+    //            fileName = Path.GetFileName(_castedData.PhaseResource.DepotPath.GetResolvedText());
+    //        }
 
-            //_graph = RedGraph.GenerateQuestGraph(fileName!, res.Graph.Chunk, _nodeWrapperFactory);
-        }
-    }
+    //        //_graph = RedGraph.GenerateQuestGraph(fileName!, res.Graph.Chunk, _nodeWrapperFactory);
+    //    }
+    //}
 
     public void RecalculateSockets()
     {

@@ -2,7 +2,7 @@
 
 public interface IGraphProvider
 {
-    public RedGraph? Graph { get; }
+    //public RedGraph? Graph { get; }
 
     public void RecalculateSockets();
 }

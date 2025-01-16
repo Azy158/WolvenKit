@@ -13,19 +13,19 @@ public class questSceneNodeDefinitionWrapper : questSignalStoppingNodeDefinition
     private readonly IArchiveManager _archiveManager;
     private readonly IGameControllerFactory _gameController;
 
-    private RedGraph? _graph = null;
+    //private RedGraph? _graph = null;
 
-    public RedGraph Graph
-    {
-        get
-        {
-            if (_graph == null)
-            {
-                GenerateSubGraph();
-            }
-            return _graph!;
-        }
-    }
+    //public RedGraph Graph
+    //{
+    //    get
+    //    {
+    //        if (_graph == null)
+    //        {
+    //            GenerateSubGraph();
+    //        }
+    //        return _graph!;
+    //    }
+    //}
 
     public questSceneNodeDefinitionWrapper(questSceneNodeDefinition nodeDefinition, ILoggerService loggerService, IGameControllerFactory gameController, IArchiveManager archiveManager) : base(nodeDefinition)
     {
@@ -49,32 +49,32 @@ public class questSceneNodeDefinitionWrapper : questSignalStoppingNodeDefinition
         }
     }
 
-    private void GenerateSubGraph()
-    {
-        if (_castedData.SceneFile.DepotPath != ResourcePath.Empty)
-        {
-            var cr2w = _archiveManager.GetCR2WFile(_castedData.SceneFile.DepotPath);
-            if (cr2w == null)
-            {
-                _loggerService.Error($"The file \"{_castedData.SceneFile.DepotPath}\" could not be found!");
-                return;
-            }
+    //private void GenerateSubGraph()
+    //{
+    //    if (_castedData.SceneFile.DepotPath != ResourcePath.Empty)
+    //    {
+    //        var cr2w = _archiveManager.GetCR2WFile(_castedData.SceneFile.DepotPath);
+    //        if (cr2w == null)
+    //        {
+    //            _loggerService.Error($"The file \"{_castedData.SceneFile.DepotPath}\" could not be found!");
+    //            return;
+    //        }
 
-            if (cr2w.RootChunk is not scnSceneResource res)
-            {
-                _loggerService.Error($"The file \"{_castedData.SceneFile.DepotPath}\" could not be opened!");
-                return;
-            }
+    //        if (cr2w.RootChunk is not scnSceneResource res)
+    //        {
+    //            _loggerService.Error($"The file \"{_castedData.SceneFile.DepotPath}\" could not be opened!");
+    //            return;
+    //        }
 
-            var fileName = ((ulong)_castedData.SceneFile.DepotPath).ToString();
-            if (_castedData.SceneFile.DepotPath.IsResolvable)
-            {
-                fileName = Path.GetFileName(_castedData.SceneFile.DepotPath.GetResolvedText());
-            }
+    //        var fileName = ((ulong)_castedData.SceneFile.DepotPath).ToString();
+    //        if (_castedData.SceneFile.DepotPath.IsResolvable)
+    //        {
+    //            fileName = Path.GetFileName(_castedData.SceneFile.DepotPath.GetResolvedText());
+    //        }
 
-            //_graph = RedGraph.GenerateSceneGraph(fileName!, res);
-        }
-    }
+    //        //_graph = RedGraph.GenerateSceneGraph(fileName!, res);
+    //    }
+    //}
 
     public void RecalculateSockets()
     {

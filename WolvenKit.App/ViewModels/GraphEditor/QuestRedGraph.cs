@@ -6,7 +6,6 @@ using WolvenKit.App.ViewModels.Documents;
 using WolvenKit.App.ViewModels.GraphEditor.Nodes.Quest;
 using WolvenKit.App.ViewModels.GraphEditor.Nodes.Quest.Internal;
 using WolvenKit.App.ViewModels.Shell;
-using WolvenKit.Core.Interfaces;
 using WolvenKit.RED4.Types;
 
 namespace WolvenKit.App.ViewModels.GraphEditor;
@@ -14,27 +13,20 @@ namespace WolvenKit.App.ViewModels.GraphEditor;
 public class QuestRedGraph : RedGraph
 {
     private static List<Type>? s_questNodeTypes;
-    private readonly questQuestPhaseResource _data;
+    private readonly graphGraphDefinition _data;
     private ushort _currentQuestNodeID;
 
-    public QuestRedGraph(string title, questQuestPhaseResource data, RedDocumentViewModel file,
-        ILoggerService log, INodeWrapperFactory nodeWrapperFactory)
-        : base(title, file, log, nodeWrapperFactory)
+    public QuestRedGraph(string title, graphGraphDefinition data, RedDocumentViewModel file, INodeWrapperFactory nodeWrapperFactory)
+        : base(title, file, nodeWrapperFactory)
     {
         _data = data;
     }
 
     public override void GenerateGraph()
     {
-        if (_data.Graph == null)
-        {
-            _loggerService.Debug("Quest does not have any existing graph.");
-            return;
-        }
-
         var socketNodeLookup = new Dictionary<graphGraphSocketDefinition, QuestInputConnectorViewModel>();
         var nodeCache = new Dictionary<uint, BaseQuestViewModel>();
-        foreach (var nodeHandle in _data.Graph.Chunk!.Nodes)
+        foreach (var nodeHandle in _data.Nodes)
         {
             ArgumentNullException.ThrowIfNull(nodeHandle.Chunk);
 
@@ -52,7 +44,7 @@ public class QuestRedGraph : RedGraph
             }
             else
             {
-                _loggerService.Warning($"Duplicate node ID: {nvm.UniqueId}. Some nodes may be missing in the graph view. File: {Title}");
+                LoggerService.Warning($"Duplicate node ID: {nvm.UniqueId}. Some nodes may be missing in the graph view. File: {Title}");
             }
             
             foreach (QuestInputConnectorViewModel inputConnector in nvm.Input)
@@ -237,7 +229,7 @@ public class QuestRedGraph : RedGraph
         var nvm = WrapNode(instance, true);
         nvm.Location = point;
 
-        _data.Graph.Chunk!.Nodes.Add(new CHandle<graphGraphNodeDefinition>(instance));
+        _data.Nodes.Add(new CHandle<graphGraphNodeDefinition>(instance));
 
         if (GetNodesChunkViewModel() is { } nodes)
         {
@@ -259,14 +251,14 @@ public class QuestRedGraph : RedGraph
             DisconnectNode(outputConnectorViewModel);
         }
 
-        for (var i = _data.Graph.Chunk!.Nodes.Count - 1; i >= 0; i--)
+        for (var i = _data.Nodes.Count - 1; i >= 0; i--)
         {
-            if (!ReferenceEquals(_data.Graph.Chunk!.Nodes[i].Chunk, node.Data))
+            if (!ReferenceEquals(_data.Nodes[i].Chunk, node.Data))
             {
                 continue;
             }
 
-            _data.Graph.Chunk!.Nodes.RemoveAt(i);
+            _data.Nodes.RemoveAt(i);
 
             if (GetNodesChunkViewModel() is { } nodeViews)
             {
@@ -308,7 +300,7 @@ public class QuestRedGraph : RedGraph
         {
             return null;
         }
-
+        
         if (dataViewModel.Chunks[0].GetPropertyFromPath("graph.nodes") is not { } nodes)
         {
             return null;
@@ -321,7 +313,7 @@ public class QuestRedGraph : RedGraph
 
     public BaseQuestViewModel WrapNode(graphGraphNodeDefinition node, bool isNew)
     {
-        var nvm = (BaseQuestViewModel)_nodeWrapperFactory.CreateViewModel(node, _data);
+        var nvm = (BaseQuestViewModel)_nodeWrapperFactory.CreateViewModel(node, DocumentViewModel.Cr2wFile.RootChunk);
 
         if (isNew)
         {

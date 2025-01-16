@@ -15,16 +15,41 @@
     BorderThickness="1,0,1,1">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="30" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-
-        <StackPanel
-            x:Name="Breadcrumb"
-            Grid.Row="0"
-            VerticalAlignment="Center"
-            Orientation="Horizontal" />
-
+        <StackPanel Grid.Row="0"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+            <ItemsControl ItemsSource="{Binding History}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="separator"
+                                       Text=">"
+                                       Margin="2,5"/>
+                            <TextBlock Text="{Binding Title}"
+                                       Tag="{Binding}"
+                                       Margin="2,5"
+                                       PreviewMouseDown="BreadcrumbElement_OnPreviewMouseDown"/>
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}"
+                                         Value="{x:Null}">
+                                <Setter Property="Visibility"
+                                        TargetName="separator"
+                                        Value="Collapsed" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
         <graphEditor:GraphEditorView
             x:Name="Editor"
             Grid.Row="1"

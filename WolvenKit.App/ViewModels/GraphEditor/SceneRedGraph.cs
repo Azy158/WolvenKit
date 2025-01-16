@@ -5,7 +5,6 @@ using WolvenKit.App.Factories;
 using WolvenKit.App.ViewModels.Documents;
 using WolvenKit.App.ViewModels.GraphEditor.Nodes.Scene.Internal;
 using WolvenKit.App.ViewModels.Shell;
-using WolvenKit.Core.Interfaces;
 using WolvenKit.RED4.Types;
 
 namespace WolvenKit.App.ViewModels.GraphEditor;
@@ -13,26 +12,19 @@ namespace WolvenKit.App.ViewModels.GraphEditor;
 public class SceneRedGraph : RedGraph
 {
     private static List<Type>? s_sceneNodeTypes;
-    private readonly scnSceneResource _data;
+    private readonly scnSceneGraph _data;
     private uint _currectSceneNodeID;
 
-    public SceneRedGraph(string title, scnSceneResource data, RedDocumentViewModel file,
-        ILoggerService log, INodeWrapperFactory nodeWrapperFactory )
-        : base(title, file, log, nodeWrapperFactory)
+    public SceneRedGraph(string title, scnSceneGraph data, RedDocumentViewModel file, INodeWrapperFactory nodeWrapperFactory)
+        : base(title, file, nodeWrapperFactory)
     {
         _data = data;
     }
 
     public override void GenerateGraph()
     {
-        if (_data.SceneGraph == null)
-        {
-            _loggerService.Debug("Scene does not have any existing graph.");
-            return;
-        }
-
         var nodeCache = new Dictionary<uint, BaseSceneViewModel>();
-        foreach (var nodeHandle in _data.SceneGraph.Chunk!.Graph)
+        foreach (var nodeHandle in _data.Graph)
         {
             ArgumentNullException.ThrowIfNull(nodeHandle.Chunk);
 
@@ -46,7 +38,7 @@ public class SceneRedGraph : RedGraph
             }
             else
             {
-                _loggerService.Warning($"Duplicate node ID: {nvm.UniqueId}. Some nodes may be missing in the graph view. File: {Title}");
+                LoggerService.Warning($"Duplicate node ID: {nvm.UniqueId}. Some nodes may be missing in the graph view. File: {Title}");
             }
         }
 
@@ -58,7 +50,7 @@ public class SceneRedGraph : RedGraph
                 {
                     if (!nodeCache.TryGetValue(destination.NodeId.Id, out var targetNode))
                     {
-                        _loggerService.Error($"NodeId {destination.NodeId.Id} is missing. Delete all existing connections to this NodeId.");
+                        LoggerService.Error($"NodeId {destination.NodeId.Id} is missing. Delete all existing connections to this NodeId.");
                         continue;
                     }
 
@@ -72,7 +64,7 @@ public class SceneRedGraph : RedGraph
 
                     if (destination.IsockStamp.Ordinal >= targetNode.Input.Count)
                     {
-                        _loggerService.Warning($"Output isock ordinal ({destination.IsockStamp.Ordinal}) of node {node.UniqueId} " +
+                        LoggerService.Warning($"Output isock ordinal ({destination.IsockStamp.Ordinal}) of node {node.UniqueId} " +
                             $"is higher than node {targetNode.UniqueId} input max ordinal ({targetNode.Input.Count - 1}). " +
                             $"Some connections may be missing in graph view. File: " + Title);
                         continue;
@@ -152,7 +144,7 @@ public class SceneRedGraph : RedGraph
         var nvm = WrapNode(instance, true);
         nvm.Location = point;
 
-        _data.SceneGraph.Chunk!.Graph.Add(new CHandle<scnSceneGraphNode>(instance));
+        _data.Graph.Add(new CHandle<scnSceneGraphNode>(instance));
 
         if (GetNodesChunkViewModel() is { } nodes)
         {
@@ -174,7 +166,7 @@ public class SceneRedGraph : RedGraph
             DisconnectNode(outputConnectorViewModel);
         }
 
-        var graph = _data.SceneGraph.Chunk!.Graph!;
+        var graph = _data.Graph!;
         for (var i = graph.Count - 1; i >= 0; i--)
         {
             if (ReferenceEquals(graph[i].Chunk, node.Data))
@@ -234,7 +226,7 @@ public class SceneRedGraph : RedGraph
 
     public BaseSceneViewModel WrapNode(scnSceneGraphNode node, bool isNew)
     {
-        var nvm = (BaseSceneViewModel)_nodeWrapperFactory.CreateViewModel(node, _data);
+        var nvm = (BaseSceneViewModel)_nodeWrapperFactory.CreateViewModel(node, DocumentViewModel.Cr2wFile.RootChunk);
 
         if (isNew)
         {

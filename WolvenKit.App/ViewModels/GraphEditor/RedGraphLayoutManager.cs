@@ -35,7 +35,7 @@ public partial class RedGraphLayoutManager : ObservableObject
             var proj = _redGraph.DocumentViewModel.GetActiveProject();
             if (proj != null)
             {
-                var statePath = Path.Combine(proj.ProjectDirectory, "GraphEditorStates", _redGraph.DocumentViewModel!.RelativePath /*+ StateParents*/ + ".json");
+                var statePath = Path.Combine(proj.ProjectDirectory, "GraphEditorStates", _redGraph.DocumentViewModel!.RelativePath + _redGraph.SubGraphIdChain + ".json");
                 var parentFolder = Path.GetDirectoryName(statePath);
 
                 if (parentFolder != null && !Directory.Exists(parentFolder))
@@ -87,7 +87,7 @@ public partial class RedGraphLayoutManager : ObservableObject
         var proj = _redGraph.DocumentViewModel?.GetActiveProject();
         if (proj != null)
         {
-            var statePath = Path.Combine(proj.ProjectDirectory, "GraphEditorStates", _redGraph.DocumentViewModel!.RelativePath /*+ StateParents*/ + ".json");
+            var statePath = Path.Combine(proj.ProjectDirectory, "GraphEditorStates", _redGraph.DocumentViewModel!.RelativePath + _redGraph.SubGraphIdChain + ".json");
             if (File.Exists(statePath))
             {
                 Dictionary<uint, System.Windows.Point> nodesLocs = new();

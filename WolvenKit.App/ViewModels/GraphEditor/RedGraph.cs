@@ -11,27 +11,26 @@ using WolvenKit.Core.Interfaces;
 
 namespace WolvenKit.App.ViewModels.GraphEditor;
 
-// TODO: Figure out how to dispose the objects only when the tab/file is closed and not unload.
-public abstract class RedGraph
+public abstract class RedGraph : IDisposable
 {
-    protected readonly ILoggerService _loggerService;
     protected readonly INodeWrapperFactory _nodeWrapperFactory;
-
+    
     public string Title { get; }
+    public string SubGraphIdChain { get; set; } = "";
     public ObservableCollection<NodeViewModel> Nodes { get; } = new();
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
     public PendingConnectionViewModel PendingConnection { get; } = new();
     public RedGraphLayoutManager LayoutManager { get; }
 
     public RedDocumentViewModel DocumentViewModel { get; set; }
+    public ILoggerService LoggerService => DocumentViewModel.GetLoggerService();
 
     public ICommand ConnectNodeCommand { get; }
     public ICommand DisconnectNodeCommand { get; }
     public ICommand NodesDragCompletedCommand { get; }
 
-    public RedGraph(string title, RedDocumentViewModel file, ILoggerService log, INodeWrapperFactory nodeWrapperFactory)
+    public RedGraph(string title, RedDocumentViewModel file, INodeWrapperFactory nodeWrapperFactory)
     {
-        _loggerService = log;
         _nodeWrapperFactory = nodeWrapperFactory;
         Title = title;
         LayoutManager = new RedGraphLayoutManager(this);
@@ -40,7 +39,6 @@ public abstract class RedGraph
         ConnectNodeCommand = new RelayCommand(ConnectNode);
         DisconnectNodeCommand = new RelayCommand<BaseConnectorViewModel>(DisconnectNode);
         NodesDragCompletedCommand = new RelayCommand(NodesDragCompleted);
-
     }
 
     private void ConnectNode()
@@ -146,4 +144,35 @@ public abstract class RedGraph
     public abstract string GetCleanTypeName(string typeName);
     public abstract ChunkViewModel? GetNodesChunkViewModel();
     public abstract uint GetNodeId(NodeViewModel node);
+
+    #region IDisposable
+
+    private bool _disposedValue;
+
+    ~RedGraph() => Dispose(false);
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                foreach (var node in Nodes)
+                {
+                    node.Dispose();
+                }
+            }
+
+            _disposedValue = true;
+        }
+    }
+
+
+    #endregion IDisposable
 }
